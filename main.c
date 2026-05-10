@@ -4,10 +4,10 @@
 #include "raylib.h"
 #include <math.h>
 
-double LAMBDA1 = 0.5;
+double LAMBDA1 = 1.0;
 double LAMBDA2 = 1.0;
-double LAMBDA3 = 2.0;
-double LAMBDA4 = 1.5;
+double LAMBDA3 = 1.0;
+double LAMBDA4 = 1.0;
 double PERCEPTION_RADIUS = 30.0;
 double SEPARATION_RADIUS = 5.0;
 double VELOCITY_CONST = 5.0;
