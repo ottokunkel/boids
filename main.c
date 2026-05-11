@@ -4,28 +4,40 @@
 #include "raylib.h"
 #include <math.h>
 
-double LAMBDA1 = 1.0;
-double LAMBDA2 = 1.0;
-double LAMBDA3 = 1.0;
-double LAMBDA4 = 1.0;
+// ---- CONSTANTS ----
+
+double LAMBDA1 = 2.5; // seperation (how much they stay seperated)
+double LAMBDA2 = 1.0; // alignment (how much they align with neighbors)
+double LAMBDA3 = 0.5; // cohesion (how much they group together)
+double LAMBDA4 = 1.0; // random noise
 double PERCEPTION_RADIUS = 30.0;
-double SEPARATION_RADIUS = 5.0;
-double VELOCITY_CONST = 5.0;
+double SEPARATION_RADIUS = 10.0;
+double VELOCITY_CONST = 2.0; // speed of the boids
 double ACCELERATION_CONST = 0.35;
 int BOID_MAX = 1500;
-int SCREEN_HEIGHT = 800;
-int SCREEN_WIDTH = 1200;
+const int SCREEN_HEIGHT = 800;
+const int SCREEN_WIDTH = 1200;
+const int FPS = 30;
 
-
-struct boid {
+// ---- Structs ----
+typedef struct {
   double x;
   double y;
-
   double vx;
   double vy;
-};
+} boid;
 
+// ---- Prototypes ----
+double l2_norm(Vector2 v);
+Vector2 randomUnitVector(void);
+Vector2 calculateCohesion(boid bk, int k, boid barr[], int boidCount);
+Vector2 calculateSeperation(boid bk, int k, boid barr[], int boidCount);
+Vector2 calculateBoidAlignment(boid bk, int k, boid barr[], int boidCount);
+double to_radians(double deg);
+void drawBoid(boid b, Color color);
+void WriteCursorPosition(void);
 
+// ---- IMPLEMENTATIONS ----
 
 double l2_norm(Vector2 v){
   return sqrt(v.x * v.x + v.y * v.y);
@@ -43,14 +55,14 @@ Vector2 randomUnitVector(){
   return v;  
 }
 
-Vector2 calculateCohesion(struct boid bk, int k, struct boid barr[], int boidCount){
+Vector2 calculateCohesion(boid bk, int k, boid barr[], int boidCount){
   Vector2 center = {.x = 0, .y = 0};
   int count = 0;
 
   // loop through boids in world 
   for (int i = 0; i < boidCount; i++){
     if (i != k){
-      struct boid bi = barr[i];
+      boid bi = barr[i];
 
       double dx = bi.x - bk.x;
       double dy = bi.y - bk.y;
@@ -70,6 +82,9 @@ Vector2 calculateCohesion(struct boid bk, int k, struct boid barr[], int boidCou
     return (Vector2){0,0};
   }
 
+  center.x /= count;
+  center.y /= count;
+
   Vector2 v = {
     .x = center.x - bk.x,
     .y = center.y - bk.y
@@ -85,13 +100,13 @@ Vector2 calculateCohesion(struct boid bk, int k, struct boid barr[], int boidCou
 
 }
 
-Vector2 calculateBoidSeperation(struct boid bk, int k, struct boid barr[], int boidCount){
+Vector2 calculateBoidSeperation(boid bk, int k, boid barr[], int boidCount){
   Vector2 v = {.x = 0, .y = 0};
 
   // loop through boids in world 
   for (int i = 0; i < boidCount; i++){
     if (i != k){
-      struct boid bi = barr[i];
+      boid bi = barr[i];
       double x = bk.x - bi.x;
       double y = bk.y - bi.y;
       
@@ -120,12 +135,13 @@ Vector2 calculateBoidSeperation(struct boid bk, int k, struct boid barr[], int b
   return v;
 }
 
-Vector2 calculateBoidAlignment(struct boid bk, int k, struct boid barr[], int boidCount){
-  struct Vector2 v = {.x = 0, .y = 0};
-  
+Vector2 calculateBoidAlignment(boid bk, int k, boid barr[], int boidCount){
+  Vector2 v = {.x = 0, .y = 0};
+  int count = 0;
+
   for (int i = 0; i < boidCount; i++){
     if (i != k){
-      struct boid bi = barr[i]; 
+      boid bi = barr[i]; 
       double dx = bi.x - bk.x;
       double dy = bi.y - bk.y;
       double dist = sqrt(dx * dx + dy * dy);
@@ -133,10 +149,16 @@ Vector2 calculateBoidAlignment(struct boid bk, int k, struct boid barr[], int bo
       if (dist < PERCEPTION_RADIUS) {
         v.x += bi.vx;
         v.y += bi.vy;
+        count++;
       }
     }
   }
+
+  if (count == 0){ return (Vector2) {0,0};}
   
+  v.x /= count;
+  v.y /= count;
+
   double v_norm = l2_norm(v);
   if (v_norm > 0){
     v.x /= v_norm;
@@ -149,7 +171,7 @@ double to_radians(double deg){
   return deg * M_PI / 180.0;
 }
  
-void drawBoid(struct boid b, Color color){
+void drawBoid(boid b, Color color){
   double x = b.x;
   double y = b.y;
   double vx = b.vx;
@@ -185,15 +207,13 @@ void WriteCursorPosition(void){
 }
 
 int main(void){
-  const int screenWidth = SCREEN_WIDTH;
-  const int screenHeight = SCREEN_HEIGHT;
 
   const char *screenTitle = "Hello There!";
-  InitWindow(screenWidth, screenHeight, screenTitle);
-  SetTargetFPS(20);
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, screenTitle);
+  SetTargetFPS(FPS);
 
 
-  struct boid boidarray[BOID_MAX];
+  boid boidarray[BOID_MAX];
   int boidCount = 0;
 
 
@@ -206,7 +226,7 @@ int main(void){
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       if (boidCount < BOID_MAX) {                                 
         Vector2 rv = randomUnitVector();
-        boidarray[boidCount] = (struct boid) {
+        boidarray[boidCount] = (boid) {
           .x = GetMouseX(), 
           .y = GetMouseY(),
           .vx = rv.x,
@@ -218,7 +238,7 @@ int main(void){
 
     // loop through existing boids
     for (int i = 0; i < boidCount; i++) {
-      struct boid bk = boidarray[i];
+      boid bk = boidarray[i];
       drawBoid(bk, BLUE);
       Vector2 s = calculateBoidSeperation(bk, i, boidarray, boidCount);
       Vector2 a = calculateBoidAlignment(bk, i, boidarray, boidCount);
@@ -231,7 +251,7 @@ int main(void){
       };
 
 
-      struct boid *bka = &boidarray[i];
+      boid *bka = &boidarray[i];
       bka->x += bka->vx;
       bka->y += bka->vy;
       bka->vx += ACCELERATION_CONST * v.x;
@@ -246,17 +266,18 @@ int main(void){
       
       DrawLine(bka->x, bka->y, bka->x + (5 * bka->vx), bka->y + (5*bka->vy), RED);
 
-      if (bka->x > screenWidth){
+      if (bka->x > SCREEN_WIDTH){
         bka->x = 0.0;
       } 
-      if (bka->y > screenHeight){
+      if (bka->x < 0.0){
+        bka->x = SCREEN_WIDTH;
+      }
+
+      if (bka->y > SCREEN_HEIGHT){
         bka->y = 0.0;
       }
-      if (bka->x < 0.0){
-        bka->x = screenWidth;
-      }
       if(bka->y < 0.0){
-          bka->y = screenHeight;
+          bka->y = SCREEN_HEIGHT;
       }
     }
 
