@@ -2,4 +2,4 @@
 
 Raylib implementation of boids in C
 
-<img width="800" height="536" alt="ScreenRecording2026-05-10at3 55 17PM-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/c77c2be2-adc7-4269-905c-43db2234bf93" />
+<img width="640" height="429" alt="output" src="https://github.com/user-attachments/assets/4c728ed1-d526-4b4e-b24f-9a5092307491" />
